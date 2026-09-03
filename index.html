@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lineup'Go — CS2 Utility Lineups</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- PANNELLO CONFIGURAZIONE SALVATAGGIO (mostrato all'avvio) -->
+  <div id="setup-panel" class="setup-overlay">
+    <div class="setup-modal">
+      <h2 class="setup-title">Configura salvataggio lineup</h2>
+      <p class="setup-desc">
+        Per salvare le lineup nei file del progetto, concedi l&apos;accesso a due elementi.
+        Ti guidiamo passo passo nella schermata mappe o della mappa con il pulsante
+        <strong>&quot;+ Aggiungi lineup&quot;</strong>. Puoi anche saltare e configurarlo più tardi.
+      </p>
+
+      <ul class="setup-steps">
+        <li id="setup-step-dir" class="setup-step">
+          <span class="setup-ind" data-state="none">&#9899;</span>
+          <div class="setup-step-body">
+            <div class="setup-step-title">1. Cartella progetto</div>
+            <div class="setup-step-desc">Scegli la cartella del progetto (quella che contiene <code>data/data.js</code>).</div>
+          </div>
+          <button id="btn-pick-dir" class="btn-secondary">Scegli cartella</button>
+        </li>
+        <li id="setup-step-file" class="setup-step">
+          <span class="setup-ind" data-state="none">&#9899;</span>
+          <div class="setup-step-body">
+            <div class="setup-step-title">2. File data/data.js</div>
+            <div class="setup-step-desc">Scegli il file <code>data/data.js</code> dentro la cartella del progetto.</div>
+          </div>
+          <button id="btn-pick-file" class="btn-secondary">Scegli file</button>
+        </li>
+      </ul>
+
+      <div class="setup-actions">
+        <button id="btn-reset-perms" class="btn-danger">Reset permessi</button>
+        <button id="btn-finish-setup" class="btn-primary" disabled>Chiudi</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCHERMATA 1: scelta mappa -->
+  <section id="screen-maps" class="screen is-active">
+    <header class="topbar">
+      <h1 class="logo">LINEUP'GO</h1>
+      <span class="tagline">CS2 utility lineups</span>
+      <button id="btn-add-lineup-maps" class="btn-add-lineup">+ Aggiungi lineup</button>
+    </header>
+    <div class="content">
+      <h2 class="section-title">Scegli la mappa</h2>
+      <div id="map-grid" class="map-grid"></div>
+    </div>
+  </section>
+
+  <!-- SCHERMATA 2: minimappa con pin -->
+  <section id="screen-map" class="screen">
+    <header class="topbar">
+      <button id="btn-back-maps" class="btn-icon" title="Indietro">&#8592;</button>
+      <h2 id="map-title" class="screen-h2"></h2>
+      <div class="filter" id="filter">
+        <button class="filter-btn is-active" data-filter="all">Tutte</button>
+        <button class="filter-btn" data-filter="smoke">Smoke</button>
+        <button class="filter-btn" data-filter="flash">Flash</button>
+        <button class="filter-btn" data-filter="molotov">Molotov</button>
+        <button class="filter-btn" data-filter="he">HE</button>
+      </div>
+      <div class="filter side-filter" id="side-filter">
+        <button class="filter-btn side-btn is-active" data-side="CT">CT</button>
+        <button class="filter-btn side-btn is-active" data-side="T">T</button>
+      </div>
+      <button id="btn-add-lineup-map" class="btn-add-lineup">+ Aggiungi</button>
+    </header>
+    <div class="content map-wrapper">
+      <div id="minimap-holder" class="minimap-holder">
+        <div id="zoom-canvas" class="zoom-canvas">
+          <!-- minimap + pin iniettati da map.js -->
+        </div>
+        <div class="zoom-controls">
+          <button id="zoom-in" class="zoom-btn" title="Zoom +">+</button>
+          <span id="zoom-label" class="zoom-label">100%</span>
+          <button id="zoom-out" class="zoom-btn" title="Zoom -">&#8722;</button>
+          <button id="zoom-reset" class="zoom-btn" title="Reset">&#8635;</button>
+        </div>
+        <div class="zoom-hint">Rotellina · Pinch · Trascina per muovere</div>
+      </div>
+      <aside id="pin-panel" class="pin-panel">
+        <button id="btn-close-panel" class="btn-icon" title="Chiudi">&#10005;</button>
+        <h3 class="panel-title"></h3>
+        <p id="pin-util-label" class="muted small"></p>
+        <div id="start-list" class="start-list"></div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- SCHERMATA 3: dettaglio lineup -->
+  <section id="screen-detail" class="screen">
+    <header class="topbar">
+      <button id="btn-back-map" class="btn-icon" title="Indietro">&#8592;</button>
+      <h2 class="screen-h2" id="detail-title"></h2>
+      <div class="detail-actions">
+        <button id="btn-edit-lineup" class="detail-action detail-action-edit">Modifica</button>
+        <button id="btn-delete-lineup" class="detail-action detail-action-delete">Elimina</button>
+      </div>
+    </header>
+    <div class="content detail-grid">
+      <figure class="detail-card">
+        <figcaption>Posizione di partenza</figcaption>
+        <div class="detail-media">
+          <img id="img-start" alt="Posizione di partenza" />
+          <span id="util-chip" class="chip chip-util"></span>
+        </div>
+      </figure>
+      <figure class="detail-card">
+        <figcaption>Dove mirare</figcaption>
+        <div class="detail-media">
+          <img id="img-aim" alt="Dove mirare" />
+          <span id="throw-chip" class="chip chip-throw"></span>
+        </div>
+      </figure>
+    </div>
+  </section>
+
+  <!-- MODAL: Aggiungi lineup -->
+  <div id="modal-add-lineup" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modal-title">Aggiungi Lineup</h2>
+        <button id="btn-close-modal" class="btn-icon" title="Chiudi">&#10005;</button>
+      </div>
+      <form id="form-add-lineup" class="modal-form">
+        <div class="form-columns">
+          <div class="form-col-left">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="add-util">Tipo utility</label>
+                <select id="add-util" required>
+                  <option value="smoke">Smoke</option>
+                  <option value="flash">Flash</option>
+                  <option value="molotov">Molotov</option>
+                  <option value="he">HE</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="add-side">Lato</label>
+                <select id="add-side" required>
+                  <option value="CT">CT</option>
+                  <option value="T">T</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="add-name">Nome lineup</label>
+              <input type="text" id="add-name" placeholder="es. Window smoke da Catwalk" required />
+            </div>
+            <div class="form-group">
+              <label for="add-throw">Tipo lancio</label>
+              <select id="add-throw" required>
+                <option value="Throw">Throw</option>
+                <option value="Right Throw">Right Throw</option>
+                <option value="Left/Right Throw">Left/Right Throw</option>
+                <option value="Jump Throw">Jump Throw</option>
+                <option value="Right Jump Throw">Right Jump Throw</option>
+                <option value="Left/Right Jump Throw">Left/Right Jump Throw</option>
+                <option value="W+Throw">W+Throw</option>
+                <option value="W+Jump Throw">W+Jump Throw</option>
+                <option value="Shift+W+Jump Throw">Shift+W+Jump Throw</option>
+                <option value="Shift+W+Throw">Shift+W+Throw</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="add-imgstart">Foto posizione di partenza</label>
+              <input type="file" id="add-imgstart" accept="image/*" />
+              <span class="file-name" id="add-imgstart-name"></span>
+            </div>
+            <div class="form-group">
+              <label for="add-imgaim">Foto dove mirare</label>
+              <input type="file" id="add-imgaim" accept="image/*" />
+              <span class="file-name" id="add-imgaim-name"></span>
+            </div>
+          </div>
+          <div class="form-col-right">
+            <div class="form-group">
+              <label for="add-map">Mappa</label>
+              <select id="add-map" required></select>
+            </div>
+            <div class="form-group">
+              <label>Posizione sulla mappa</label>
+              <div class="add-map-preview" id="add-map-preview">
+                <img id="add-map-preview-img" draggable="false" alt="Minimappa" />
+                <span class="add-map-pin" id="add-map-pin"></span>
+                <span class="add-map-hint" id="add-map-hint">Click per piazzare il pin</span>
+              </div>
+              <input type="hidden" id="add-x" />
+              <input type="hidden" id="add-y" />
+            </div>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" id="btn-cancel-add" class="btn-secondary">Annulla</button>
+          <button type="submit" id="btn-submit-lineup" class="btn-primary">Aggiungi</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="data/data.js"></script>
+  <script src="js/map.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/add-lineup.js"></script>
+</body>
+</html>

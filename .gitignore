@@ -1,0 +1,5 @@
+# Foto delle lineup (locali, per-utente)
+/assets/*/lineups/
+
+# Database lineup locale (per-utente, non versionato)
+# /data/data.js
