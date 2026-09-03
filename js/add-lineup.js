@@ -52,14 +52,21 @@ async function removeHandle(key) {
 let cachedDirHandle = null;
 
 async function ensureProjectDir() {
-  if (cachedDirHandle) return cachedDirHandle;
+  if (cachedDirHandle) {
+    console.log("[LINEUP'GO] Using cached project dir handle");
+    return cachedDirHandle;
+  }
+  console.log("[LINEUP'GO] Showing directory picker...");
   const dirHandle = await window.showDirectoryPicker({ mode: "readwrite" });
+  console.log("[LINEUP'GO] Directory picker returned, validating...");
   if (!(await validateProjectDir(dirHandle))) {
+    console.warn("[LINEUP'GO] Directory validation failed — folder does not contain data/data.js");
     alert("La cartella scelta non contiene data/data.js. Scegli la cartella del progetto.");
     return null;
   }
   cachedDirHandle = dirHandle;
   await saveHandle("project-dir", dirHandle);
+  console.log("[LINEUP'GO] Project dir handle saved to IndexedDB");
   return dirHandle;
 }
 
@@ -227,17 +234,24 @@ async function readDataJS(fileHandle) {
 let cachedFileHandle = null;
 
 async function ensureFileHandle() {
-  if (cachedFileHandle) return cachedFileHandle;
+  if (cachedFileHandle) {
+    console.log("[LINEUP'GO] Using cached file handle");
+    return cachedFileHandle;
+  }
+  console.log("[LINEUP'GO] Showing file picker...");
   [cachedFileHandle] = await window.showOpenFilePicker({
     types: [{ description: "JavaScript", accept: { "text/javascript": [".js"] } }],
     multiple: false
   });
+  console.log("[LINEUP'GO] File picker returned, validating...");
   if (!(await validateDataFile(cachedFileHandle))) {
     cachedFileHandle = null;
+    console.warn("[LINEUP'GO] File validation failed — no window.DATABASE found in selected file");
     alert("Il file scelto non è il database (manca window.DATABASE). Scegli data/data.js.");
     return null;
   }
   await saveHandle("data-js", cachedFileHandle);
+  console.log("[LINEUP'GO] File handle saved to IndexedDB");
   return cachedFileHandle;
 }
 
@@ -287,7 +301,10 @@ ${i}}`;
 function appendLineupToSource(source, mapId, lineupCode) {
   const re = new RegExp(`(${mapId}\\s*:\\s*\\{[\\s\\S]*?lineups\\s*:\\s*\\[)([\\s\\S]*?)(\\])`);
   const m = source.match(re);
-  if (!m) return null;
+  if (!m) {
+    console.error("[LINEUP'GO] appendLineupToSource: regex did not match mapId:", mapId);
+    return null;
+  }
   const existing = m[2].trim();
   const newContent = existing ? existing + ",\n" + lineupCode : lineupCode;
   return source.replace(m[0], m[1] + "\n" + newContent + "\n        " + m[3]);
@@ -320,7 +337,10 @@ function locateLineupBlock(source, lineupId) {
    lineupCode === null. Gestisce la virgola di separazione tra gli elementi. */
 function replaceLineupInSource(source, lineupId, lineupCode) {
   const loc = locateLineupBlock(source, lineupId);
-  if (!loc) return null;
+  if (!loc) {
+    console.error("[LINEUP'GO] replaceLineupInSource: could not locate lineup block for id:", lineupId);
+    return null;
+  }
 
   const { start, end } = loc;
 
@@ -403,7 +423,7 @@ document.getElementById("form-add-lineup").addEventListener("submit", async e =>
 
   const mapId = document.getElementById("add-map").value;
   const lineup = parseLineupFromForm();
-  if (!lineup.name || !lineup.start) return;
+  if (!lineup.name) return;
   if (isNaN(lineup.x) || isNaN(lineup.y)) {
     alert("Seleziona un punto sulla mappa.");
     return;
@@ -415,6 +435,7 @@ document.getElementById("form-add-lineup").addEventListener("submit", async e =>
   const isEdit = editingLineup !== null;
 
   if (!("showOpenFilePicker" in window)) {
+    console.warn("[LINEUP'GO] File System Access API not available — running in fallback mode (file://?). Saving to memory only.");
     if (isEdit) {
       upsertLineupInMemory(mapId, lineup);
     } else {
@@ -433,23 +454,41 @@ document.getElementById("form-add-lineup").addEventListener("submit", async e =>
   }
 
   try {
+    console.log("[LINEUP'GO] Save started:", { mapId, isEdit, lineupId: lineup.id, name: lineup.name });
+
     const needDir = (imgStartFile || imgAimFile) && !cachedDirHandle;
     const needFile = !cachedFileHandle;
+
+    console.log("[LINEUP'GO] Picker state:", { needDir, needFile, cachedFileHandle: !!cachedFileHandle, cachedDirHandle: !!cachedDirHandle });
+
+    if (needFile) {
+      console.log("[LINEUP'GO] Opening file picker (must be synchronous with user gesture)...");
+    }
+    if (needDir) {
+      console.log("[LINEUP'GO] Opening directory picker (must be synchronous with user gesture)...");
+    }
 
     const dirPromise = needDir ? ensureProjectDir() : Promise.resolve(cachedDirHandle);
     const filePromise = needFile ? ensureFileHandle() : Promise.resolve(cachedFileHandle);
 
     const [fileHandle, projectDir] = await Promise.all([filePromise, dirPromise]);
 
+    console.log("[LINEUP'GO] Picker results:", { fileHandle: !!fileHandle, projectDir: !!projectDir });
+
     if (!fileHandle || (needDir && !projectDir)) {
+      console.warn("[LINEUP'GO] Save aborted: missing handle(s)", { fileHandle: !!fileHandle, projectDir: !!projectDir, needDir });
       return;
     }
 
     if (imgStartFile && projectDir) {
+      console.log("[LINEUP'GO] Saving start image...");
       lineup.imgStart = await saveImageToProject(projectDir, mapId, lineup.util, lineup.name, imgStartFile);
+      console.log("[LINEUP'GO] Start image saved:", lineup.imgStart);
     }
     if (imgAimFile && projectDir) {
+      console.log("[LINEUP'GO] Saving aim image...");
       lineup.imgAim = await saveImageToProject(projectDir, mapId, lineup.util, lineup.name, imgAimFile);
+      console.log("[LINEUP'GO] Aim image saved:", lineup.imgAim);
     }
 
     const source = await readDataJS(fileHandle);
@@ -458,6 +497,7 @@ document.getElementById("form-add-lineup").addEventListener("submit", async e =>
       ? replaceLineupInSource(source, lineup.id, code)
       : appendLineupToSource(source, mapId, code);
     if (!newSource) {
+      console.error("[LINEUP'GO] Failed to inject lineup into data/data.js — regex match failed for map:", mapId);
       alert("Impossibile trovare la sezione lineups per questa mappa in data/data.js");
       return;
     }
@@ -465,17 +505,23 @@ document.getElementById("form-add-lineup").addEventListener("submit", async e =>
     const writable = await fileHandle.createWritable();
     await writable.write(newSource);
     await writable.close();
+    console.log("[LINEUP'GO] data/data.js written successfully");
 
     if (isEdit) {
       upsertLineupInMemory(mapId, lineup);
     } else {
       addLineupToMemory(mapId, lineup);
     }
+    console.log("[LINEUP'GO] Save complete:", { mapId, lineupId: lineup.id });
     closeModal();
     refreshUI(mapId);
     if (isEdit) showScreen("map");
   } catch (err) {
-    if (err.name === "AbortError") return;
+    if (err.name === "AbortError") {
+      console.warn("[LINEUP'GO] Save cancelled by user (picker dismissed)");
+      return;
+    }
+    console.error("[LINEUP'GO] Save failed:", err);
     alert("Errore: " + err.message);
   }
 });
@@ -503,6 +549,7 @@ function removeLineupFromMemory(mapId, lineupId) {
 
 async function deleteLineup(mapId, lineupId) {
   if (!("showOpenFilePicker" in window)) {
+    console.warn("[LINEUP'GO] Delete in fallback mode (file://?) — removing from memory only");
     removeLineupFromMemory(mapId, lineupId);
     closeModal();
     refreshUI(mapId);
@@ -510,12 +557,17 @@ async function deleteLineup(mapId, lineupId) {
   }
 
   try {
+    console.log("[LINEUP'GO] Delete started:", { mapId, lineupId });
     const fileHandle = await ensureFileHandle();
-    if (!fileHandle) return false;
+    if (!fileHandle) {
+      console.warn("[LINEUP'GO] Delete aborted: no file handle");
+      return false;
+    }
 
     const source = await readDataJS(fileHandle);
     const newSource = replaceLineupInSource(source, lineupId, null);
     if (!newSource) {
+      console.error("[LINEUP'GO] Delete failed: lineup block not found in source for id:", lineupId);
       alert("Impossibile trovare la lineup in data/data.js");
       return false;
     }
@@ -523,6 +575,7 @@ async function deleteLineup(mapId, lineupId) {
     const writable = await fileHandle.createWritable();
     await writable.write(newSource);
     await writable.close();
+    console.log("[LINEUP'GO] data/data.js written after delete");
 
     const lineup = DATABASE.maps[mapId].lineups.find(l => l.id === lineupId);
     removeLineupFromMemory(mapId, lineupId);
@@ -532,10 +585,14 @@ async function deleteLineup(mapId, lineupId) {
       await deleteProjectFiles(projectDir, [lineup.imgStart, lineup.imgAim]);
     }
 
+    console.log("[LINEUP'GO] Delete complete:", { mapId, lineupId });
     refreshUI(mapId);
     return true;
   } catch (err) {
-    if (err.name !== "AbortError") alert("Errore: " + err.message);
+    if (err.name !== "AbortError") {
+      console.error("[LINEUP'GO] Delete failed:", err);
+      alert("Errore: " + err.message);
+    }
     return false;
   }
 }
@@ -557,6 +614,7 @@ async function getPermissionState() {
       const p = await handle.queryPermission({ mode: "readwrite" });
       return p === "prompt" ? "prompt" : p;
     } catch (err) {
+      console.warn("[LINEUP'GO] Permission query failed:", err);
       return "denied";
     }
   }
@@ -599,8 +657,10 @@ async function initSetupPanel() {
   const overlay = document.getElementById("setup-panel");
   if (!overlay) return;
   const s = await getPermissionState();
+  console.log("[LINEUP'GO] Setup panel init — permission state:", s);
 
   if (s.file === "granted" && s.dir === "granted") {
+    console.log("[LINEUP'GO] Both permissions already granted, hiding setup panel");
     overlay.classList.add("is-hidden");
     return;
   }
