@@ -43,6 +43,7 @@
     "directories": {
       "output": "dist"
     },
+    "artifactName": "${productName}-${version}.${ext}",
     "win": {
       "target": "nsis",
       "icon": "assets/app/icon.png"
