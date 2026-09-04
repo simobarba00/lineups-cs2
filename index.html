@@ -159,19 +159,20 @@
             </div>
             <div class="form-group">
               <label for="add-throw">Tipo lancio</label>
-              <select id="add-throw" required>
-                <option value="Throw">Throw</option>
-                <option value="Right Throw">Right Throw</option>
-                <option value="Left/Right Throw">Left/Right Throw</option>
-                <option value="Jump Throw">Jump Throw</option>
-                <option value="Right Jump Throw">Right Jump Throw</option>
-                <option value="Left Jump Throw">Left Jump Throw</option>
-                <option value="Left/Right Jump Throw">Left/Right Jump Throw</option>
-                <option value="W+Throw">W+Throw</option>
-                <option value="W+Jump Throw">W+Jump Throw</option>
-                <option value="Shift+W+Jump Throw">Shift+W+Jump Throw</option>
-                <option value="Shift+W+Throw">Shift+W+Throw</option>
-              </select>
+              <input type="text" id="add-throw" list="throw-list" placeholder="es. Jump Throw" required />
+              <datalist id="throw-list">
+                <option value="Throw">
+                <option value="Run Throw">
+                <option value="Left/Right Throw">
+                <option value="Jump Throw">
+                <option value="Right Jump Throw">
+                <option value="Left Jump Throw">
+                <option value="Left/Right Jump Throw">
+                <option value="W+Throw">
+                <option value="W+Jump Throw">
+                <option value="Shift+W+Jump Throw">
+                <option value="Shift+W+Throw">
+              </datalist>
             </div>
             <div class="form-group">
               <label for="add-imgstart">Foto posizione di partenza</label>

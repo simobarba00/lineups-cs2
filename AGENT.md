@@ -79,7 +79,7 @@ A **lineup** object (JSON keys):
 - `side` — `"CT" | "T"`
 - `name` — human-readable
 - `start` — starting position name
-- `throw` — single string field, one of: `"Throw"`, `"Right Throw"`, `"Left/Right Throw"`, `"Jump Throw"`, `"Right Jump Throw"`, `"Left Jump Throw"`, `"Left/Right Jump Throw"`, `"W+Throw"`, `"W+Jump Throw"`, `"Shift+W+Jump Throw"`, `"Shift+W+Throw"` (also the options in the add/edit select `#add-throw`; no separate `jumpthrow` boolean)
+- `throw` — free-text string (autocomplete suggestions via `<datalist>`; any value accepted)
 - `x` / `y` — percentage coordinates (0-1) of the lineup's own position on the minimap
 - `imgStart` / `imgAim` — screen paths for the two detail photos
 
