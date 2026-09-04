@@ -1,6 +1,6 @@
 # LINEUP'GO — CS2 Utility Lineups
 
-App web locale per consultare rapidamente le lineups delle utility in CS2 durante una partita. Scritta in Vanilla HTML/CSS/JS senza framework, build step o package manager: apri il browser e funziona.
+App desktop per consultare rapidamente le lineups delle utility in CS2 durante una partita.
 
 ## Funzionalita
 
@@ -8,12 +8,17 @@ App web locale per consultare rapidamente le lineups delle utility in CS2 durant
 - **Minimappa interattiva** — pin posizionati sulle coordinate reali della lineup, con zoom (rotellina, pinch, pulsanti), pan e raggruppamento automatico dei pin vicini
 - **Filtri** — per tipo di utility (Smoke / Flash / Molotov / HE) e per lato (CT / T), indipendenti
 - **Dettaglio lineup** — foto affiancate (posizione di partenza e punto di mira) con chip per tipo utility e tipo lancio
-- **Aggiungi / Modifica / Elimina lineup** — form integrato che salva direttamente nei file del progetto tramite File System Access API (Chromium). In assenza di server HTTP copia il codice negli appunti
-- **Setup permessi** — pannello all'avvio che guida nella concessione dei permessi di scrittura su cartella progetto e file `data.js`
+- **Aggiungi / Modifica / Elimina lineup** — form integrato che salva automaticamente i dati
+- **Aggiornamenti automatici** — l'app si aggiorna da sola quando disponibile
+
+## Mappe supportate
+
+Mirage, Ancient, Anubis, Cache, Dust2, Inferno, Nuke
 
 ## Installazione
 
-Clone del repository:
+### Windows
 
-scarica direttamente il progetto da Github ed esegui index.html
-
+1. Scarica l'ultima release dalla pagina [Releases](https://github.com/enomis0002/lineups-cs2/releases) del repository
+2. Esegui il file `.exe` scaricato
+3. Segui le istruzioni di installazione

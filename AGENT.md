@@ -97,7 +97,7 @@ assets/
 ```
 
 - `x`, `y` — normalized 0–1 coordinates on the minimap.
-- `util` — `"molotov"`, `"smoke"`, `"flash"`, `"hegrenade"`, `"decoy"`.
+- `util` — `"molotov"`, `"smoke"`, `"flash"`, `"he"`.
 - `side` — `"T"` or `"CT"`.
 - `throw` — free text (e.g. `"Jump Throw"`, `"Left Jump Throw"`, `"Run Throw"`, `"Throw"`).
 - `id` — 8-char hex string, used to derive image paths: `assets/{id}/start.png`, `assets/{id}/aim.png`.
