@@ -1,6 +1,6 @@
 {
   "name": "lineups-cs2",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "App web locale per consultare rapidamente le lineups delle utility in CS2 durante una partita. Scritta in Vanilla HTML/CSS/JS senza framework, build step o package manager: apri il browser e funziona.",
   "main": "main.js",
   "scripts": {
