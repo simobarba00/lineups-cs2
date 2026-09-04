@@ -8,42 +8,6 @@
 </head>
 <body>
 
-  <!-- PANNELLO CONFIGURAZIONE SALVATAGGIO (mostrato all'avvio) -->
-  <div id="setup-panel" class="setup-overlay">
-    <div class="setup-modal">
-      <h2 class="setup-title">Configura salvataggio lineup</h2>
-      <p class="setup-desc">
-        Per salvare le lineup nei file del progetto, concedi l&apos;accesso a due elementi.
-        Ti guidiamo passo passo nella schermata mappe o della mappa con il pulsante
-        <strong>&quot;+ Aggiungi lineup&quot;</strong>. Puoi anche saltare e configurarlo più tardi.
-      </p>
-
-      <ul class="setup-steps">
-        <li id="setup-step-dir" class="setup-step">
-          <span class="setup-ind" data-state="none">&#9899;</span>
-          <div class="setup-step-body">
-            <div class="setup-step-title">1. Cartella progetto</div>
-            <div class="setup-step-desc">Scegli la cartella del progetto (quella che contiene <code>data/data.js</code>).</div>
-          </div>
-          <button id="btn-pick-dir" class="btn-secondary">Scegli cartella</button>
-        </li>
-        <li id="setup-step-file" class="setup-step">
-          <span class="setup-ind" data-state="none">&#9899;</span>
-          <div class="setup-step-body">
-            <div class="setup-step-title">2. File data/data.js</div>
-            <div class="setup-step-desc">Scegli il file <code>data/data.js</code> dentro la cartella del progetto.</div>
-          </div>
-          <button id="btn-pick-file" class="btn-secondary">Scegli file</button>
-        </li>
-      </ul>
-
-      <div class="setup-actions">
-        <button id="btn-reset-perms" class="btn-danger">Reset permessi</button>
-        <button id="btn-finish-setup" class="btn-primary" disabled>Chiudi</button>
-      </div>
-    </div>
-  </div>
-
   <!-- SCHERMATA 1: scelta mappa -->
   <section id="screen-maps" class="screen is-active">
     <header class="topbar">
@@ -210,9 +174,14 @@
     </div>
   </div>
 
-  <script src="data/data.js"></script>
   <script src="js/map.js"></script>
   <script src="js/app.js"></script>
   <script src="js/add-lineup.js"></script>
+  <script>
+    (async () => {
+      window.DATABASE = JSON.parse(await window.electronAPI.readData());
+      initApp();
+    })();
+  </script>
 </body>
 </html>

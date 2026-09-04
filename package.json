@@ -1,0 +1,66 @@
+{
+  "name": "lineups-cs2",
+  "version": "1.0.0",
+  "description": "App web locale per consultare rapidamente le lineups delle utility in CS2 durante una partita. Scritta in Vanilla HTML/CSS/JS senza framework, build step o package manager: apri il browser e funziona.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dist": "electron-builder",
+    "dist:win": "electron-builder --win",
+    "dist:mac": "electron-builder --mac",
+    "dist:linux": "electron-builder --linux"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/simobarba00/lineups-cs2.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/simobarba00/lineups-cs2/issues"
+  },
+  "homepage": "https://github.com/simobarba00/lineups-cs2#readme",
+  "build": {
+    "appId": "com.lineupsgo.app",
+    "productName": "LINEUPGO",
+    "publish": {
+      "provider": "github",
+      "owner": "simobarba00",
+      "repo": "lineups-cs2"
+    },
+    "files": [
+      "main.js",
+      "updater.js",
+      "preload.js",
+      "index.html",
+      "css/**/*",
+      "js/**/*",
+      "data/**/*",
+      "assets/**/*"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "assets/app/icon.png"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "assets/app/icon.png"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "assets/app/icon.png"
+    }
+  },
+  "devDependencies": {
+    "electron": "^44.2.0",
+    "electron-builder": "^26.15.3"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9"
+  }
+}

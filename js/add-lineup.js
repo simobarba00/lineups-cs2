@@ -2,84 +2,6 @@
    LINEUP'GO — AGGIUNGI LINEUP
    ============================================================ */
 
-const IDB_NAME = "lineupgo-db";
-const IDB_STORE = "file-handles";
-const DB_VERSION = 1;
-
-function openIDB() {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(IDB_NAME, DB_VERSION);
-    req.onupgradeneeded = () => {
-      req.result.createObjectStore(IDB_STORE);
-    };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-}
-
-async function getHandle(key) {
-  const db = await openIDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(IDB_STORE, "readonly");
-    const req = tx.objectStore(IDB_STORE).get(key);
-    req.onsuccess = () => resolve(req.result || null);
-    req.onerror = () => reject(req.error);
-  });
-}
-
-async function saveHandle(key, handle) {
-  const db = await openIDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(IDB_STORE, "readwrite");
-    const req = tx.objectStore(IDB_STORE).put(handle, key);
-    req.onsuccess = () => resolve();
-    req.onerror = () => reject(req.error);
-  });
-}
-
-async function removeHandle(key) {
-  const db = await openIDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(IDB_STORE, "readwrite");
-    const req = tx.objectStore(IDB_STORE).delete(key);
-    req.onsuccess = () => resolve();
-    req.onerror = () => reject(req.error);
-  });
-}
-
-/* ---------- project directory handle ---------- */
-
-let cachedDirHandle = null;
-
-async function ensureProjectDir() {
-  if (cachedDirHandle) {
-    console.log("[LINEUP'GO] Using cached project dir handle");
-    return cachedDirHandle;
-  }
-  console.log("[LINEUP'GO] Showing directory picker...");
-  const dirHandle = await window.showDirectoryPicker({ mode: "readwrite" });
-  console.log("[LINEUP'GO] Directory picker returned, validating...");
-  if (!(await validateProjectDir(dirHandle))) {
-    console.warn("[LINEUP'GO] Directory validation failed — folder does not contain data/data.js");
-    alert("La cartella scelta non contiene data/data.js. Scegli la cartella del progetto.");
-    return null;
-  }
-  cachedDirHandle = dirHandle;
-  await saveHandle("project-dir", dirHandle);
-  console.log("[LINEUP'GO] Project dir handle saved to IndexedDB");
-  return dirHandle;
-}
-
-async function validateProjectDir(dirHandle) {
-  try {
-    const dataDir = await dirHandle.getDirectoryHandle("data");
-    await dataDir.getFileHandle("data.js");
-    return true;
-  } catch (err) {
-    return false;
-  }
-}
-
 /* ---------- file name display ---------- */
 
 document.getElementById("add-imgstart").addEventListener("change", e => {
@@ -225,45 +147,6 @@ document.getElementById("modal-add-lineup").addEventListener("click", e => {
   if (e.target === e.currentTarget) closeModal();
 });
 
-/* ---------- data/data.js read/write ---------- */
-
-async function readDataJS(fileHandle) {
-  return await (await fileHandle.getFile()).text();
-}
-
-let cachedFileHandle = null;
-
-async function ensureFileHandle() {
-  if (cachedFileHandle) {
-    console.log("[LINEUP'GO] Using cached file handle");
-    return cachedFileHandle;
-  }
-  console.log("[LINEUP'GO] Showing file picker...");
-  [cachedFileHandle] = await window.showOpenFilePicker({
-    types: [{ description: "JavaScript", accept: { "text/javascript": [".js"] } }],
-    multiple: false
-  });
-  console.log("[LINEUP'GO] File picker returned, validating...");
-  if (!(await validateDataFile(cachedFileHandle))) {
-    cachedFileHandle = null;
-    console.warn("[LINEUP'GO] File validation failed — no window.DATABASE found in selected file");
-    alert("Il file scelto non è il database (manca window.DATABASE). Scegli data/data.js.");
-    return null;
-  }
-  await saveHandle("data-js", cachedFileHandle);
-  console.log("[LINEUP'GO] File handle saved to IndexedDB");
-  return cachedFileHandle;
-}
-
-async function validateDataFile(fileHandle) {
-  try {
-    const text = await (await fileHandle.getFile()).text();
-    return text.includes("window.DATABASE");
-  } catch (err) {
-    return false;
-  }
-}
-
 /* ---------- form -> lineup ---------- */
 
 function parseLineupFromForm() {
@@ -276,144 +159,28 @@ function parseLineupFromForm() {
     start: editing ? editing.start : "",
     throw: document.getElementById("add-throw").value,
     x: parseFloat(document.getElementById("add-x").value),
-    y: parseFloat(document.getElementById("add-y").value),
-    imgStart: editing ? editing.imgStart : "",
-    imgAim: editing ? editing.imgAim : ""
+    y: parseFloat(document.getElementById("add-y").value)
   };
-}
-
-function generateLineupCode(lineup) {
-  const i = "          ";
-  return `${i}{
-${i}  id: "${lineup.id}",
-${i}  util: "${lineup.util}",
-${i}  side: "${lineup.side}",
-${i}  name: "${lineup.name}",
-${i}  start: "${lineup.start}",
-${i}  throw: "${lineup.throw}",
-${i}  x: ${lineup.x},
-${i}  y: ${lineup.y},
-${i}  imgStart: "${lineup.imgStart}",
-${i}  imgAim: "${lineup.imgAim}"
-${i}}`;
-}
-
-function appendLineupToSource(source, mapId, lineupCode) {
-  const re = new RegExp(`(${mapId}\\s*:\\s*\\{[\\s\\S]*?lineups\\s*:\\s*\\[)([\\s\\S]*?)(\\])`);
-  const m = source.match(re);
-  if (!m) {
-    console.error("[LINEUP'GO] appendLineupToSource: regex did not match mapId:", mapId);
-    return null;
-  }
-  const existing = m[2].trim();
-  const newContent = existing ? existing + ",\n" + lineupCode : lineupCode;
-  return source.replace(m[0], m[1] + "\n" + newContent + "\n        " + m[3]);
-}
-
-/* Trova il blocco di una lineup (da "{" prima di `id:` fino alla "}" di chiusura
-   del suo oggetto) dato un id univoco. Restituisce { start, end, block }. */
-function locateLineupBlock(source, lineupId) {
-  const idIdx = source.indexOf(`id: "${lineupId}"`);
-  if (idIdx === -1) return null;
-
-  const open = source.lastIndexOf("{", idIdx);
-  if (open === -1) return null;
-
-  let depth = 0, end = -1;
-  for (let i = open; i < source.length; i++) {
-    const ch = source[i];
-    if (ch === "{") depth++;
-    else if (ch === "}") {
-      depth--;
-      if (depth === 0) { end = i; break; }
-    }
-  }
-  if (end === -1) return null;
-
-  return { start: open, end, block: source.slice(open, end + 1) };
-}
-
-/* Sostituisce il blocco della lineup con lineupCode, oppure lo rimuove se
-   lineupCode === null. Gestisce la virgola di separazione tra gli elementi. */
-function replaceLineupInSource(source, lineupId, lineupCode) {
-  const loc = locateLineupBlock(source, lineupId);
-  if (!loc) {
-    console.error("[LINEUP'GO] replaceLineupInSource: could not locate lineup block for id:", lineupId);
-    return null;
-  }
-
-  const { start, end } = loc;
-
-  if (lineupCode === null) {
-    let removeStart = start;
-    let removeEnd = end + 1;
-    /* se il blocco ha una virgola dopo, consumala (caso non-ultimo) */
-    const afterMatch = source.slice(end + 1).match(/^\s*,\s*/);
-    if (afterMatch) {
-      removeEnd = end + 1 + afterMatch[0].length;
-    } else {
-      /* ultimo elemento: rimuovi la virgola che lo precede */
-      const beforeMatch = source.slice(0, start).match(/,\s*$/);
-      if (beforeMatch) removeStart = start - beforeMatch[0].length;
-    }
-    return (source.slice(0, removeStart) + source.slice(removeEnd))
-      .replace(/\n{3,}/g, "\n\n");
-  }
-
-  return source.slice(0, start) + lineupCode + source.slice(end + 1);
 }
 
 /* ---------- save images to project ---------- */
 
-function safeSegment(str) {
-  return str.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 40);
-}
-
-async function saveImageToProject(projectDir, mapId, util, name, file) {
-  const ext = file.name.split(".").pop();
-  const segments = [
-    "assets",
-    safeSegment(mapId),
-    "lineups",
-    `${safeSegment(util)}s`,
-    safeSegment(name)
-  ];
-  let dirHandle = projectDir;
-  for (const seg of segments) {
-    dirHandle = await dirHandle.getDirectoryHandle(seg, { create: true });
-  }
-  const fileName = `${safeSegment(name)}_${uuidShort()}.${ext}`;
-  const fileHandle = await dirHandle.getFileHandle(fileName, { create: true });
-  const writable = await fileHandle.createWritable();
-  await writable.write(file);
-  await writable.close();
-  return `${segments.join("/")}/${fileName}`;
-}
-
 function uuidShort() {
-  return crypto.randomUUID().slice(0, 8);
+  const bytes = new Uint8Array(4);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, b => b.toString(16).padStart(2, "0")).join("");
 }
 
-/* Elimina dei file nel progetto dato il loro percorso relativo (es. "assets/.../x.png").
-   Best-effort: se un file manca, continua con gli altri. */
-async function deleteProjectFiles(projectDir, paths) {
-  if (!projectDir) return;
+async function saveImageToProject(lineupId, type, file) {
+  const ext = file.name.split(".").pop();
+  const rel = `assets/${lineupId}/${type}.${ext}`;
+  const buffer = await file.arrayBuffer();
+  await window.electronAPI.saveImage(rel, buffer);
+  return rel;
+}
 
-  const unique = [...new Set(paths.filter(p => typeof p === "string" && p.startsWith("assets/") && p.length))];
-  for (const path of unique) {
-    try {
-      const segments = path.split("/");
-      const fileName = segments.pop();
-      let dirHandle = projectDir;
-      for (const seg of segments) {
-        dirHandle = await dirHandle.getDirectoryHandle(seg);
-      }
-      const fileHandle = await dirHandle.getFileHandle(fileName);
-      await fileHandle.remove();
-    } catch (err) {
-      /* file già assente o permessi: ignora */
-    }
-  }
+async function deleteLineupAssets(lineupId) {
+  await window.electronAPI.deleteFolder(`assets/${lineupId}`);
 }
 
 /* ---------- submit ---------- */
@@ -431,96 +198,38 @@ document.getElementById("form-add-lineup").addEventListener("submit", async e =>
 
   const imgStartFile = document.getElementById("add-imgstart").files[0];
   const imgAimFile = document.getElementById("add-imgaim").files[0];
-
   const isEdit = editingLineup !== null;
 
-  if (!("showOpenFilePicker" in window)) {
-    console.warn("[LINEUP'GO] File System Access API not available — running in fallback mode (file://?). Saving to memory only.");
-    if (isEdit) {
-      upsertLineupInMemory(mapId, lineup);
-    } else {
-      addLineupToMemory(mapId, lineup);
-    }
-    const code = generateLineupCode(lineup);
-    navigator.clipboard.writeText(code).then(() => {
-      alert("Lineup copiato negli appunti! Incollalo in data/data.js");
-    }).catch(() => {
-      prompt(`Copia in data/data.js:\n\n${code}`, code);
-    });
-    closeModal();
-    refreshUI(mapId);
-    if (isEdit) showScreen("map");
-    return;
-  }
-
   try {
-    console.log("[LINEUP'GO] Save started:", { mapId, isEdit, lineupId: lineup.id, name: lineup.name });
-
-    const needDir = (imgStartFile || imgAimFile) && !cachedDirHandle;
-    const needFile = !cachedFileHandle;
-
-    console.log("[LINEUP'GO] Picker state:", { needDir, needFile, cachedFileHandle: !!cachedFileHandle, cachedDirHandle: !!cachedDirHandle });
-
-    if (needFile) {
-      console.log("[LINEUP'GO] Opening file picker (must be synchronous with user gesture)...");
+    if (imgStartFile) {
+      await saveImageToProject(lineup.id, "start", imgStartFile);
     }
-    if (needDir) {
-      console.log("[LINEUP'GO] Opening directory picker (must be synchronous with user gesture)...");
+    if (imgAimFile) {
+      await saveImageToProject(lineup.id, "aim", imgAimFile);
     }
 
-    const dirPromise = needDir ? ensureProjectDir() : Promise.resolve(cachedDirHandle);
-    const filePromise = needFile ? ensureFileHandle() : Promise.resolve(cachedFileHandle);
+    const db = JSON.parse(await window.electronAPI.readData());
+    const arr = db.maps[mapId].lineups;
 
-    const [fileHandle, projectDir] = await Promise.all([filePromise, dirPromise]);
-
-    console.log("[LINEUP'GO] Picker results:", { fileHandle: !!fileHandle, projectDir: !!projectDir });
-
-    if (!fileHandle || (needDir && !projectDir)) {
-      console.warn("[LINEUP'GO] Save aborted: missing handle(s)", { fileHandle: !!fileHandle, projectDir: !!projectDir, needDir });
-      return;
+    if (isEdit) {
+      const idx = arr.findIndex(l => l.id === lineup.id);
+      if (idx !== -1) arr[idx] = lineup;
+      else arr.push(lineup);
+    } else {
+      arr.push(lineup);
     }
 
-    if (imgStartFile && projectDir) {
-      console.log("[LINEUP'GO] Saving start image...");
-      lineup.imgStart = await saveImageToProject(projectDir, mapId, lineup.util, lineup.name, imgStartFile);
-      console.log("[LINEUP'GO] Start image saved:", lineup.imgStart);
-    }
-    if (imgAimFile && projectDir) {
-      console.log("[LINEUP'GO] Saving aim image...");
-      lineup.imgAim = await saveImageToProject(projectDir, mapId, lineup.util, lineup.name, imgAimFile);
-      console.log("[LINEUP'GO] Aim image saved:", lineup.imgAim);
-    }
-
-    const source = await readDataJS(fileHandle);
-    const code = generateLineupCode(lineup);
-    const newSource = isEdit
-      ? replaceLineupInSource(source, lineup.id, code)
-      : appendLineupToSource(source, mapId, code);
-    if (!newSource) {
-      console.error("[LINEUP'GO] Failed to inject lineup into data/data.js — regex match failed for map:", mapId);
-      alert("Impossibile trovare la sezione lineups per questa mappa in data/data.js");
-      return;
-    }
-
-    const writable = await fileHandle.createWritable();
-    await writable.write(newSource);
-    await writable.close();
-    console.log("[LINEUP'GO] data/data.js written successfully");
+    await window.electronAPI.writeData(JSON.stringify(db, null, 2));
 
     if (isEdit) {
       upsertLineupInMemory(mapId, lineup);
     } else {
       addLineupToMemory(mapId, lineup);
     }
-    console.log("[LINEUP'GO] Save complete:", { mapId, lineupId: lineup.id });
     closeModal();
     refreshUI(mapId);
     if (isEdit) showScreen("map");
   } catch (err) {
-    if (err.name === "AbortError") {
-      console.warn("[LINEUP'GO] Save cancelled by user (picker dismissed)");
-      return;
-    }
     console.error("[LINEUP'GO] Save failed:", err);
     alert("Errore: " + err.message);
   }
@@ -548,51 +257,24 @@ function removeLineupFromMemory(mapId, lineupId) {
 }
 
 async function deleteLineup(mapId, lineupId) {
-  if (!("showOpenFilePicker" in window)) {
-    console.warn("[LINEUP'GO] Delete in fallback mode (file://?) — removing from memory only");
-    removeLineupFromMemory(mapId, lineupId);
-    closeModal();
-    refreshUI(mapId);
-    return true;
-  }
-
   try {
-    console.log("[LINEUP'GO] Delete started:", { mapId, lineupId });
-    const fileHandle = await ensureFileHandle();
-    if (!fileHandle) {
-      console.warn("[LINEUP'GO] Delete aborted: no file handle");
-      return false;
-    }
+    const db = JSON.parse(await window.electronAPI.readData());
+    const lineup = db.maps[mapId].lineups.find(l => l.id === lineupId);
+    db.maps[mapId].lineups = db.maps[mapId].lineups.filter(l => l.id !== lineupId);
 
-    const source = await readDataJS(fileHandle);
-    const newSource = replaceLineupInSource(source, lineupId, null);
-    if (!newSource) {
-      console.error("[LINEUP'GO] Delete failed: lineup block not found in source for id:", lineupId);
-      alert("Impossibile trovare la lineup in data/data.js");
-      return false;
-    }
+    await window.electronAPI.writeData(JSON.stringify(db, null, 2));
 
-    const writable = await fileHandle.createWritable();
-    await writable.write(newSource);
-    await writable.close();
-    console.log("[LINEUP'GO] data/data.js written after delete");
-
-    const lineup = DATABASE.maps[mapId].lineups.find(l => l.id === lineupId);
     removeLineupFromMemory(mapId, lineupId);
 
     if (lineup) {
-      const projectDir = await ensureProjectDir().catch(() => null);
-      await deleteProjectFiles(projectDir, [lineup.imgStart, lineup.imgAim]);
+      await deleteLineupAssets(lineupId);
     }
 
-    console.log("[LINEUP'GO] Delete complete:", { mapId, lineupId });
     refreshUI(mapId);
     return true;
   } catch (err) {
-    if (err.name !== "AbortError") {
-      console.error("[LINEUP'GO] Delete failed:", err);
-      alert("Errore: " + err.message);
-    }
+    console.error("[LINEUP'GO] Delete failed:", err);
+    alert("Errore: " + err.message);
     return false;
   }
 }
@@ -601,106 +283,3 @@ function refreshUI(mapId) {
   if (currentMapId) renderMinimap(DATABASE.maps[currentMapId], currentFilter);
   renderMaps();
 }
-
-/* ============================================================
-   PANNELLO CONFIGURAZIONE (mostrato all'avvio)
-   ============================================================ */
-
-async function getPermissionState() {
-  const [fh, dh] = await Promise.all([getHandle("data-js"), getHandle("project-dir")]);
-  async function stateOf(handle) {
-    if (!handle) return "none";
-    try {
-      const p = await handle.queryPermission({ mode: "readwrite" });
-      return p === "prompt" ? "prompt" : p;
-    } catch (err) {
-      console.warn("[LINEUP'GO] Permission query failed:", err);
-      return "denied";
-    }
-  }
-  const fileState = await stateOf(fh);
-  const dirState = await stateOf(dh);
-  if (fh && fileState === "granted") cachedFileHandle = fh;
-  if (dh && dirState === "granted") cachedDirHandle = dh;
-  return { couldFile: !!fh, couldDir: !!dh, file: fileState, dir: dirState };
-}
-
-function setStepState(stepId, state) {
-  const row = document.getElementById(stepId);
-  if (!row) return;
-  const ind = row.querySelector(".setup-ind");
-  if (ind) ind.dataset.state = state;
-  row.classList.toggle("is-ready", state === "granted");
-  const btn = row.querySelector("button");
-  if (btn) {
-    if (state === "granted") {
-      btn.remove();
-      const check = document.createElement("span");
-      check.className = "setup-check";
-      check.textContent = "\u2713";
-      row.appendChild(check);
-    } else {
-      btn.disabled = false;
-    }
-  }
-  return state === "granted";
-}
-
-async function refreshSetupUI() {
-  const s = await getPermissionState();
-  const dirReady = setStepState("setup-step-dir", s.dir);
-  const fileReady = setStepState("setup-step-file", s.file);
-  document.getElementById("btn-finish-setup").disabled = !(dirReady && fileReady);
-}
-
-async function initSetupPanel() {
-  const overlay = document.getElementById("setup-panel");
-  if (!overlay) return;
-  const s = await getPermissionState();
-  console.log("[LINEUP'GO] Setup panel init — permission state:", s);
-
-  if (s.file === "granted" && s.dir === "granted") {
-    console.log("[LINEUP'GO] Both permissions already granted, hiding setup panel");
-    overlay.classList.add("is-hidden");
-    return;
-  }
-
-  await refreshSetupUI();
-
-  document.getElementById("btn-pick-dir").addEventListener("click", async () => {
-    const handle = await ensureProjectDir();
-    if (handle) {
-      await refreshSetupUI();
-      maybeAutoClose(overlay);
-    }
-  });
-
-  document.getElementById("btn-pick-file").addEventListener("click", async () => {
-    const handle = await ensureFileHandle();
-    if (handle) {
-      await refreshSetupUI();
-      maybeAutoClose(overlay);
-    }
-  });
-
-  document.getElementById("btn-finish-setup").addEventListener("click", () => {
-    overlay.classList.add("is-hidden");
-  });
-
-  document.getElementById("btn-reset-perms").addEventListener("click", async () => {
-    if (!confirm("Rimuovere le autorizzazioni salvate? Dovrai ri-scegliere cartella e file.")) return;
-    await Promise.all([removeHandle("data-js"), removeHandle("project-dir")]);
-    cachedFileHandle = null;
-    cachedDirHandle = null;
-    await refreshSetupUI();
-  });
-}
-
-async function maybeAutoClose(overlay) {
-  const s = await getPermissionState();
-  if (s.file === "granted" && s.dir === "granted") {
-    overlay.classList.add("is-hidden");
-  }
-}
-
-initSetupPanel();

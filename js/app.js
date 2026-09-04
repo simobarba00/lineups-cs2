@@ -122,8 +122,8 @@ function showDetail(mapData, lineup) {
   utilChip.appendChild(utilIcon);
   document.getElementById("throw-chip").textContent = lineup.throw;
 
-  document.getElementById("img-start").src = lineup.imgStart;
-  document.getElementById("img-aim").src = lineup.imgAim;
+  document.getElementById("img-start").src = `assets/${lineup.id}/start.png`;
+  document.getElementById("img-aim").src = `assets/${lineup.id}/aim.png`;
 
   showScreen("detail");
 }
@@ -165,5 +165,7 @@ document.getElementById("btn-close-panel").addEventListener("click", () => {
 });
 
 /* ---------- Init ---------- */
-renderMaps();
-showScreen("maps");
+function initApp() {
+  renderMaps();
+  showScreen("maps");
+}
