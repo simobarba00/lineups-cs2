@@ -172,7 +172,7 @@ function uuidShort() {
 }
 
 async function saveImageToProject(lineupId, type, file) {
-  const ext = file.name.split(".").pop();
+  const ext = "jpg";
   const rel = `assets/${lineupId}/${type}.${ext}`;
   const buffer = await file.arrayBuffer();
   await window.electronAPI.saveImage(rel, buffer);

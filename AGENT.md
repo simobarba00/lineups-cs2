@@ -65,8 +65,8 @@ assets/
   lineups/
     data.json                    ← live database (all maps + lineups)
     assets/{lineup_id}/
-      start.png                  ← screenshot from standing position
-      aim.png                    ← screenshot of crosshair placement
+      start.jpg                  ← screenshot from standing position
+      aim.jpg                    ← screenshot of crosshair placement
 ```
 
 ### data.json format
@@ -100,7 +100,7 @@ assets/
 - `util` — `"molotov"`, `"smoke"`, `"flash"`, `"he"`.
 - `side` — `"T"` or `"CT"`.
 - `throw` — free text (e.g. `"Jump Throw"`, `"Left Jump Throw"`, `"Run Throw"`, `"Throw"`).
-- `id` — 8-char hex string, used to derive image paths: `assets/{id}/start.png`, `assets/{id}/aim.png`.
+- `id` — 8-char hex string, used to derive image paths: `assets/{id}/start.jpg`, `assets/{id}/aim.jpg`.
 - **No `imgStart`/`imgAim` fields** — image paths are always derived from the lineup `id`.
 
 ### data.template.json
@@ -127,7 +127,7 @@ Screens are `<section>` elements with IDs `screen-maps`, `screen-map`, `screen-d
 
 ## Image storage
 
-Images are saved to `%APPDATA%/lineups-cs2/lineups/assets/{lineup_id}/start.png` (or `.jpg`) and `aim.png` (or `.jpg`). The path is derived from the lineup's `id` — no path is stored in `data.json`. Saving writes the file; deleting removes the entire `assets/{id}/` folder. Display reads from `assets/${lineup.id}/start.png` at runtime.
+Images are saved to `%APPDATA%/lineups-cs2/lineups/assets/{lineup_id}/start.jpg` (or `.jpg`) and `aim.jpg` (or `.jpg`). The path is derived from the lineup's `id` — no path is stored in `data.json`. Saving writes the file; deleting removes the entire `assets/{id}/` folder. Display reads from `assets/${lineup.id}/start.jpg` at runtime.
 
 ## Known quirks
 

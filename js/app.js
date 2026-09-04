@@ -122,8 +122,8 @@ function showDetail(mapData, lineup) {
   utilChip.appendChild(utilIcon);
   document.getElementById("throw-chip").textContent = lineup.throw;
 
-  document.getElementById("img-start").src = `assets/${lineup.id}/start.png`;
-  document.getElementById("img-aim").src = `assets/${lineup.id}/aim.png`;
+  document.getElementById("img-start").src = `assets/${lineup.id}/start.jpg`;
+  document.getElementById("img-aim").src = `assets/${lineup.id}/aim.jpg`;
 
   showScreen("detail");
 }
