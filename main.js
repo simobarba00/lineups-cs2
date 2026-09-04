@@ -100,6 +100,10 @@ function registerIPC() {
     } catch (_) {}
     return true;
   });
+
+  ipcMain.handle("app:getVersion", () => {
+    return app.getVersion();
+  });
 }
 
 function bootstrapUserData() {

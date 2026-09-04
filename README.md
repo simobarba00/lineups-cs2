@@ -19,6 +19,6 @@ Mirage, Ancient, Anubis, Cache, Dust2, Inferno, Nuke
 
 ### Windows
 
-1. Scarica l'ultima release dalla pagina [Releases](https://github.com/enomis0002/lineups-cs2/releases) del repository
+1. Scarica l'ultima release dalla pagina [Releases](https://github.com/simobarba00/lineups-cs2/releases) del repository
 2. Esegui il file `.exe` scaricato
 3. Segui le istruzioni di installazione

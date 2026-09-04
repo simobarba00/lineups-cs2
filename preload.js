@@ -5,4 +5,5 @@ contextBridge.exposeInMainWorld("electronAPI", {
   writeData:     (source)         => ipcRenderer.invoke("fs:writeData", source),
   saveImage:     (rel, buffer)    => ipcRenderer.invoke("fs:saveImage", rel, buffer),
   deleteFolder:  (rel)            => ipcRenderer.invoke("fs:deleteFolder", rel),
+  getVersion:    ()               => ipcRenderer.invoke("app:getVersion"),
 });

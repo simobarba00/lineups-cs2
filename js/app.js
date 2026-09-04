@@ -168,4 +168,7 @@ document.getElementById("btn-close-panel").addEventListener("click", () => {
 function initApp() {
   renderMaps();
   showScreen("maps");
+  window.electronAPI.getVersion().then(v => {
+    document.getElementById("app-version").textContent = "v" + v;
+  });
 }

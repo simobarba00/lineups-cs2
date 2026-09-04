@@ -559,4 +559,15 @@ body {
 }
 .add-map-hint.is-hidden { display: none; }
 
+.app-footer {
+  position: fixed;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  color: var(--muted);
+  z-index: 50;
+  pointer-events: none;
+}
+
 
